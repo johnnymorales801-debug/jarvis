@@ -1,1 +1,287 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Orbitron", "Space Grotesk", sans-serif;
+  --font-body: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-term: "Share Tech Mono", "Courier New", monospace;
+
+  --color-void: #030a12;
+  --color-abyss: #06121e;
+  --color-panel: #0a1a29;
+  --color-edge: #123246;
+  --color-cyanhud: #56e6ff;
+  --color-cyandeep: #17b8e6;
+  --color-cyandark: #0e3a52;
+  --color-ice: #d9f1fb;
+  --color-fog: #6b8fa6;
+  --color-amberhud: #ffb454;
+  --color-emberhud: #ff7847;
+  --color-mint: #6ff2b2;
+  --color-alarm: #ff5d6c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-void);
+  color: var(--color-ice);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(86, 230, 255, 0.28);
+  color: #eafcff;
+}
+
+/* ---------- backdrop layers ---------- */
+
+.hud-backdrop {
+  background-color: var(--color-void);
+  background-image:
+    radial-gradient(1100px 720px at 78% -12%, rgba(23, 184, 230, 0.17), transparent 62%),
+    radial-gradient(900px 640px at 6% 112%, rgba(255, 180, 84, 0.09), transparent 58%),
+    radial-gradient(760px 520px at 45% 48%, rgba(23, 184, 230, 0.06), transparent 65%),
+    linear-gradient(rgba(86, 230, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(86, 230, 255, 0.045) 1px, transparent 1px);
+  background-size:
+    auto,
+    auto,
+    auto,
+    44px 44px,
+    44px 44px;
+}
+
+.hud-vignette {
+  background: radial-gradient(125% 95% at 50% 42%, transparent 52%, rgba(2, 6, 11, 0.82) 100%);
+}
+
+.hud-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
+/* ---------- panels ---------- */
+
+.hud-panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(10, 26, 41, 0.94), rgba(6, 18, 30, 0.9));
+  border: 1px solid var(--color-edge);
+  box-shadow:
+    inset 0 0 26px rgba(23, 184, 230, 0.05),
+    0 10px 30px rgba(2, 6, 11, 0.45);
+}
+
+.clip-hud {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% 100%,
+    12px 100%,
+    0 calc(100% - 12px)
+  );
+}
+
+.clip-hud-sm {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% 100%,
+    8px 100%,
+    0 calc(100% - 8px)
+  );
+}
+
+.glow-cyan {
+  text-shadow: 0 0 14px rgba(86, 230, 255, 0.5);
+}
+
+.glow-amber {
+  text-shadow: 0 0 14px rgba(255, 180, 84, 0.45);
+}
+
+.hud-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.hud-scroll::-webkit-scrollbar-track {
+  background: rgba(18, 50, 70, 0.25);
+}
+.hud-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-edge);
+}
+.hud-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyandark);
+}
+
+.seg-fill {
+  background-image: linear-gradient(90deg, rgba(23, 184, 230, 0.9), rgba(86, 230, 255, 0.95)),
+    repeating-linear-gradient(90deg, transparent 0 5px, rgba(3, 10, 18, 0.95) 5px 7px);
+  background-blend-mode: multiply;
+}
+
+.seg-fill-amber {
+  background-image: linear-gradient(90deg, rgba(255, 120, 71, 0.9), rgba(255, 180, 84, 0.95)),
+    repeating-linear-gradient(90deg, transparent 0 5px, rgba(3, 10, 18, 0.95) 5px 7px);
+  background-blend-mode: multiply;
+}
+
+/* ---------- keyframes ---------- */
+
+@keyframes kf-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes kf-rotate-rev {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+@keyframes kf-scan-y {
+  0% {
+    top: -4%;
+  }
+  100% {
+    top: 104%;
+  }
+}
+@keyframes kf-scanpass {
+  0% {
+    top: -12%;
+  }
+  100% {
+    top: 112%;
+  }
+}
+@keyframes kf-wave {
+  0%,
+  100% {
+    transform: scaleY(0.22);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes kf-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes kf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kf-core {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes kf-flick {
+  0%,
+  91%,
+  94%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 0.35;
+  }
+}
+@keyframes kf-blip {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.5);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+@keyframes kf-dash {
+  to {
+    stroke-dashoffset: -240;
+  }
+}
+
+/* motion is opt-in: nothing animates under prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-sweep {
+    animation: kf-rotate 4.4s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .anim-spin-slow {
+    animation: kf-rotate 28s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .anim-spin-rev {
+    animation: kf-rotate-rev 19s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .anim-rise {
+    animation: kf-rise 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+  .anim-wave {
+    animation: kf-wave 1.05s ease-in-out infinite;
+    transform-origin: bottom;
+  }
+  .anim-blink {
+    animation: kf-blink 1.05s steps(1) infinite;
+  }
+  .anim-scan {
+    animation: kf-scan-y 9s linear infinite;
+  }
+  .anim-scanpass {
+    animation: kf-scanpass 2.3s cubic-bezier(0.45, 0, 0.2, 1) both;
+  }
+  .anim-core {
+    animation: kf-core 2.8s ease-in-out infinite;
+  }
+  .anim-flick {
+    animation: kf-flick 7s linear infinite;
+  }
+  .anim-blip {
+    animation: kf-blip 2.4s ease-out infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .anim-dash {
+    animation: kf-dash 12s linear infinite;
+  }
+}
