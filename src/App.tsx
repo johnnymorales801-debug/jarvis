@@ -6,6 +6,8 @@ import ReactorCore from "./components/ReactorCore";
 import RadarPanel from "./components/RadarPanel";
 import LogStream, { type LogEntry, type LogLevel } from "./components/LogStream";
 import Console, { type Msg } from "./components/Console";
+import FabricationPanel from "./components/FabricationPanel";
+import PowerGrid from "./components/PowerGrid";
 import { runCommand, greetingLines, type CmdCtx, type Stats } from "./lib/jarvis";
 
 const rnd = (a: number, b: number) => Math.floor(a + Math.random() * (b - a + 1));
@@ -47,6 +49,31 @@ const SUBSYSTEMS = [
   { id: "fab", label: "FABRICATION BAY" },
 ];
 
+interface Toast {
+  id: number;
+  title: string;
+  note: string;
+  kind: "cyan" | "amber" | "mint";
+}
+
+const KIND_STYLE: Record<Toast["kind"], { border: string; dot: string }> = {
+  cyan: { border: "border-cyanhud/70", dot: "bg-cyanhud shadow-[0_0_8px_rgba(86,230,255,0.9)]" },
+  amber: { border: "border-amberhud/70", dot: "bg-amberhud shadow-[0_0_8px_rgba(255,180,84,0.9)]" },
+  mint: { border: "border-mint/70", dot: "bg-mint shadow-[0_0_8px_rgba(111,242,178,0.9)]" },
+};
+
+const TICKER = [
+  "STARK EXPO TICKETS SELL OUT IN 41 SECONDS",
+  "REACTOR OUTPUT EXCEEDS Q3 FORECAST BY 12%",
+  "POTTS: “THE COMPANY IS FINE. ASK ME AGAIN IN AN HOUR.”",
+  "MARK 42 FIRMWARE 9.1 ROLLED OUT TO ALL SUITS",
+  "HAPPY HOGAN: LIMO CHARGED, SNACKS STOCKED, PATIENCE THIN",
+  "R&D WING — NEW VIBRANIUM LATTICE PASSING STRESS TESTS",
+  "DUMMY-U REASSIGNED AFTER EXTINGUISHER INCIDENT",
+  "PERIMETER DRONE-07 STILL PHOTOGRAPHING THE HOUSE",
+  "WEATHER ADVISORY: PERFECT FLIGHT CONDITIONS OVER MALIBU",
+];
+
 function ScanOverlay() {
   return (
     <div className="pointer-events-none fixed inset-0 z-40" aria-hidden>
@@ -83,6 +110,7 @@ export default function App() {
   const [uptime, setUptime] = useState("00:00:00");
   const [stats, setStats] = useState<Stats>({ cpu: 23, mem: 61, net: 48, temp: 3187 });
   const [subs, setSubs] = useState<Record<string, boolean>>({ rep: true, stab: true, comms: true, fab: false });
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>(() => [
     { id: -3, t: timeStr(), level: "info", text: "hud kernel v42.7 — cold start" },
     { id: -2, t: timeStr(), level: "ok", text: "arc reactor handshake — 98.2% stable" },
@@ -91,6 +119,7 @@ export default function App() {
 
   const msgIdRef = useRef(1);
   const logIdRef = useRef(1);
+  const toastIdRef = useRef(1);
   const bootAtRef = useRef(0);
   const statsRef = useRef(stats);
   const lightsRef = useRef(lightsOn);
@@ -108,6 +137,12 @@ export default function App() {
 
   const pushJarvis = useCallback((text: string) => {
     setMessages((prev) => [...prev, { id: msgIdRef.current++, role: "jarvis", text, time: timeStr() }]);
+  }, []);
+
+  const pushToast = useCallback((title: string, note: string, kind: Toast["kind"]) => {
+    const id = toastIdRef.current++;
+    setToasts((prev) => [...prev.slice(-2), { id, title, note, kind }]);
+    window.setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3800);
   }, []);
 
   const onTyper = useCallback((id: number, active: boolean) => {
@@ -153,16 +188,30 @@ export default function App() {
         return;
       }
 
-      if (res.action === "lights-on") setLightsOn(true);
-      if (res.action === "lights-off") setLightsOn(false);
-      if (res.action === "music-on") setPlaying(true);
-      if (res.action === "music-off") setPlaying(false);
+      if (res.action === "lights-on") {
+        setLightsOn(true);
+        pushToast("LIGHTING GRID", "Workshop lights restored to 100%", "amber");
+      }
+      if (res.action === "lights-off") {
+        setLightsOn(false);
+        pushToast("LIGHTING GRID", "Ambient lighting disengaged", "amber");
+      }
+      if (res.action === "music-on") {
+        setPlaying(true);
+        pushToast("AUDIO ARRAY", "Now playing — Shoot to Thrill", "cyan");
+      }
+      if (res.action === "music-off") {
+        setPlaying(false);
+        pushToast("AUDIO ARRAY", "Playback stopped", "cyan");
+      }
       if (res.action === "scan") {
         setScanning(true);
         window.setTimeout(() => setScanning(false), 2500);
+        pushToast("SENSOR ARRAY", "High-gain environmental sweep initiated", "cyan");
       }
 
       if (res.sequence) {
+        pushToast("PROTOCOL // HOUSE PARTY", "34 suits powered and airborne", "mint");
         let acc = res.delay ?? 550;
         for (const step of res.sequence) {
           window.setTimeout(() => pushJarvis(step.text), acc);
@@ -173,7 +222,7 @@ export default function App() {
 
       window.setTimeout(() => pushJarvis(res.lines.join("\n")), res.delay ?? 420);
     },
-    [pushLog, pushJarvis]
+    [pushLog, pushJarvis, pushToast]
   );
 
   /* ---- living telemetry loops ---- */
@@ -208,11 +257,10 @@ export default function App() {
   const subsActive = SUBSYSTEMS.filter((s) => subs[s.id]).length;
 
   const toggleSub = (id: string, label: string) => {
-    setSubs((prev) => {
-      const next = !prev[id];
-      pushLog("info", `${label.toLowerCase()} ${next ? "engaged" : "disengaged"}`);
-      return { ...prev, [id]: next };
-    });
+    const next = !subs[id];
+    setSubs((prev) => ({ ...prev, [id]: next }));
+    pushLog("info", `${label.toLowerCase()} ${next ? "engaged" : "disengaged"}`);
+    pushToast(label, next ? "Subsystem engaged — logged" : "Subsystem disengaged — logged", next ? "mint" : "amber");
   };
 
   return (
@@ -238,7 +286,7 @@ export default function App() {
           />
 
           <main className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-1 gap-3 p-3 xl:min-h-0 xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:overflow-hidden">
-            {/* left column — reactor + subsystems */}
+            {/* left column — reactor + fabrication + subsystems */}
             <div className="hud-scroll flex flex-col gap-3 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
               <HudPanel
                 title="ARC REACTOR // TELEMETRY"
@@ -246,6 +294,14 @@ export default function App() {
                 right={<span className="font-term text-[9px] tracking-[0.2em] text-mint">STABLE</span>}
               >
                 <ReactorCore stats={stats} />
+              </HudPanel>
+
+              <HudPanel
+                title="FABRICATION // BAY 2"
+                delay={105}
+                right={<span className="anim-blink font-term text-[9px] tracking-[0.2em] text-amberhud">MACHINING</span>}
+              >
+                <FabricationPanel />
               </HudPanel>
 
               <HudPanel
@@ -327,7 +383,7 @@ export default function App() {
               </HudPanel>
             </div>
 
-            {/* right column — radar + log */}
+            {/* right column — radar + power grid + log */}
             <div className="hud-scroll flex flex-col gap-3 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
               <HudPanel
                 title="RADAR // CONTACTS"
@@ -339,6 +395,14 @@ export default function App() {
                 }
               >
                 <RadarPanel scanning={scanning} />
+              </HudPanel>
+
+              <HudPanel
+                title="POWER GRID // OUTPUT"
+                delay={195}
+                right={<span className="font-term text-[9px] tracking-[0.2em] text-cyanhud">LIVE FEED</span>}
+              >
+                <PowerGrid />
               </HudPanel>
 
               <HudPanel
@@ -357,8 +421,22 @@ export default function App() {
             </div>
           </main>
 
-          {/* status strip */}
+          {/* wire ticker + status strip */}
           <footer className="anim-rise hidden border-t border-edge/70 bg-abyss/70 md:block" style={{ animationDelay: "300ms" }}>
+            <div className="ticker overflow-hidden border-b border-edge/40">
+              <div className="anim-ticker flex w-max items-center gap-8 py-1 font-term text-[9px] tracking-[0.28em] whitespace-nowrap text-fog">
+                {[0, 1].map((copy) => (
+                  <span key={copy} className="flex items-center gap-8" aria-hidden={copy === 1}>
+                    {TICKER.map((h, i) => (
+                      <span key={i} className="flex items-center gap-8">
+                        <span className="transition-colors hover:text-cyanhud">{h}</span>
+                        <span className="text-cyanhud/60">◆</span>
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-1.5 font-term text-[9px] tracking-[0.25em] text-fog">
               <span>STARK INDUSTRIES — R&amp;D DIVISION // NODE MALIBU-01</span>
               <span className="text-fog/70">LINK ENCRYPTED AES-4096 — BUILD 42.7</span>
@@ -371,6 +449,19 @@ export default function App() {
       )}
 
       {scanning && <ScanOverlay />}
+
+      {/* action toasts */}
+      <div className="pointer-events-none fixed top-16 right-3 z-[45] flex w-[268px] flex-col gap-2">
+        {toasts.map((t) => (
+          <div key={t.id} className={`anim-toast hud-panel clip-hud-sm border-l-2 ${KIND_STYLE[t.kind].border} px-3 py-2`}>
+            <p className="flex items-center gap-2 font-display text-[9px] font-bold tracking-[0.24em] text-ice">
+              <span className={`h-1.5 w-1.5 shrink-0 ${KIND_STYLE[t.kind].dot}`} />
+              {t.title}
+            </p>
+            <p className="mt-0.5 pl-3.5 font-term text-[10px] tracking-[0.08em] text-fog">{t.note}</p>
+          </div>
+        ))}
+      </div>
 
       {/* lights-off dimming */}
       <div

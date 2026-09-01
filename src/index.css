@@ -236,6 +236,24 @@ body {
     stroke-dashoffset: -240;
   }
 }
+@keyframes kf-toast {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kf-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
 
 /* motion is opt-in: nothing animates under prefers-reduced-motion */
 @media (prefers-reduced-motion: no-preference) {
@@ -283,5 +301,14 @@ body {
   }
   .anim-dash {
     animation: kf-dash 12s linear infinite;
+  }
+  .anim-toast {
+    animation: kf-toast 0.38s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+  .anim-ticker {
+    animation: kf-ticker 46s linear infinite;
+  }
+  .ticker:hover .anim-ticker {
+    animation-play-state: paused;
   }
 }
